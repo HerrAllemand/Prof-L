@@ -1,0 +1,20 @@
+# Node modules
+node_modules/
+
+# Build output
+build/
+
+# Local env files
+.env
+
+# React standard ignores
+/dist/
+/.next/
+/.out/
+/.cache/
+/.example/
+/.env.local
+/.env.development.local
+/.env.test.local
+/.env.production.local
+/public/
