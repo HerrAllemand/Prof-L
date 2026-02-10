@@ -20,7 +20,7 @@ export default function App() {
 
   // --- API KEY KONFIGURATION ---
   // Hier deinen Key eintragen (sk-ant-...)
-  const API_KEY = (sk-...6UcA) ; 
+  const API_KEY = "sk-...6UcA" ; 
 
   // --- AUDIO LOGIK ---
   useEffect(() => {
