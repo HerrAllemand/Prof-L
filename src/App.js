@@ -14,7 +14,7 @@ export default function App() {
   const API_KEY = "sk-...6UcA"; 
 
   const handleAnalyze = async () => {
-    if (!text || API_KEY === "DEIN_KEY_HIER") {
+    if (!text || API_KEY === "sk-...6UcA") {
       alert("Bitte Text eingeben und API-Key im Code ersetzen!");
       return;
     }
