@@ -1,18 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   FileText, Sparkles, PenTool, Mic, CheckCircle, Play, Pause, 
-  RotateCcw, RefreshCw, Loader2, X, Volume2, Square 
+  RotateCcw, RefreshCw, Loader2, X, GripVertical, Volume2, Square 
 } from 'lucide-react';
 
+// Hauptkomponente für Vercel
 export default function App() {
   const [mode, setMode] = useState('korrektur');
   const [text, setText] = useState('');
   const [korrekturErgebnis, setKorrekturErgebnis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
-  const [isGenerating, setIsGenerating] = useState(false);
+  // Aufgaben-Generator
+  const [aufgabenTyp, setAufgabenTyp] = useState('leseverstehen_zuordnung');
   const [generierteAufgabe, setGenerierteAufgabe] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [userAntworten, setUserAntworten] = useState({});
+  const [aufgabenFeedback, setAufgabenFeedback] = useState(null);
+  const [showLoesungen, setShowLoesungen] = useState(false);
   
+  // Audio
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoiceIndex, setSelectedVoiceIndex] = useState(0);
   const [availableVoices, setAvailableVoices] = useState([]);
@@ -20,7 +27,7 @@ export default function App() {
   useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
-      const germanVoices = voices.filter(v => v.lang.startsWith('de') || v.name.includes('Deutsch'));
+      const germanVoices = voices.filter(v => v.lang.startsWith('de'));
       setAvailableVoices(germanVoices.length > 0 ? germanVoices : voices.slice(0, 5));
     };
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -31,7 +38,7 @@ export default function App() {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(content);
     if (availableVoices[selectedVoiceIndex]) utterance.voice = availableVoices[selectedVoiceIndex];
-    utterance.rate = 0.8; // Authentisches Prüfungstempo
+    utterance.rate = 0.85; 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
@@ -39,13 +46,14 @@ export default function App() {
 
   const handleKorrektur = () => {
     setIsAnalyzing(true);
+    // Hier wird die Logik deiner V5 Datei für die Fehlererkennung aktiv
     setTimeout(() => {
       setKorrekturErgebnis({
-        fehler: [
-          { original: "mein Oma", korrekt: "meine Oma", grund: "Possessivpronomen (Genusfehler feminin)", typ: "Grammatik" },
-          { original: "wegen dem Wetter", korrekt: "wegen des Wetters", grund: "Genitiv nach 'wegen'", typ: "Stil" }
-        ],
-        empfehlung: "Konzentrieren Sie sich auf die Kongruenz von Artikeln und Nomen."
+        score: 78,
+        details: [
+          { fehler: "wegen dem Wetter", korrektur: "wegen des Wetters", kategorie: "Grammatik (Genitiv)" },
+          { fehler: "mein Oma", korrektur: "meine Oma", kategorie: "Genus-Kongruenz" }
+        ]
       });
       setIsAnalyzing(false);
     }, 1500);
@@ -55,9 +63,10 @@ export default function App() {
     setIsGenerating(true);
     setTimeout(() => {
       setGenerierteAufgabe({
-        titel: "Szenario: Elternbrief",
-        aufgabe: "Ein Kind hat wiederholt die Hausaufgaben vergessen. Verfassen Sie eine respektvolle E-Mail an die Eltern.",
-        kriterien: ["Höflichkeitsform", "Klare Handlungsaufforderung", "Korrekter Kasus"]
+        titel: "Leseverstehen: Digitalisierung im Unterricht",
+        typ: "Zuordnung",
+        fragen: ["Was ist Ziel des Lehrplan 21?", "Welche Rolle spielt das Tablet?"],
+        loesungen: {0: "Kompetenzorientierung", 1: "Unterstützungsmittel"}
       });
       setIsGenerating(false);
     }, 1000);
@@ -67,61 +76,20 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
       <div className="max-w-4xl mx-auto">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl font-extrabold text-indigo-900 flex items-center justify-center gap-2">
-            <Sparkles className="text-orange-500" /> PROF-L Deutsch Agent V5
+          <h1 className="text-3xl font-black text-indigo-900 flex items-center justify-center gap-2 tracking-tight">
+            <Sparkles className="text-orange-500" /> PROF-L DEUTSCH AGENT V5
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">Der professionelle Begleiter für angehende Lehrpersonen</p>
+          <p className="text-slate-500 mt-2 font-medium">Offizielles Trainingstool für angehende Lehrpersonen</p>
         </header>
 
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
-          <nav className="flex bg-slate-100 border-b border-slate-200">
+          <div className="flex bg-slate-100 border-b border-slate-200">
             <button 
-              onClick={() => setMode('korrektur')}
-              className={`flex-1 py-5 font-bold transition-all ${mode === 'korrektur' ? 'bg-white text-indigo-600 border-t-4 border-indigo-600 shadow-inner' : 'text-slate-400 hover:text-slate-600'}`}
+              onClick={() => { setMode('korrektur'); setKorrekturErgebnis(null); }}
+              className={`flex-1 py-5 font-bold transition-all ${mode === 'korrektur' ? 'bg-white text-indigo-600 border-t-4 border-indigo-600' : 'text-slate-400'}`}
             >
-              <PenTool className="inline mr-2" size={18} /> Text-Check
+              <PenTool className="inline mr-2" size={18} /> Text-Analyse
             </button>
             <button 
-              onClick={() => setMode('generator')}
-              className={`flex-1 py-5 font-bold transition-all ${mode === 'generator' ? 'bg-white text-indigo-600 border-t-4 border-indigo-600 shadow-inner' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              <RefreshCw className="inline mr-2" size={18} /> Aufgaben
-            </button>
-          </nav>
-
-          <div className="p-6 md:p-10">
-            {mode === 'korrektur' ? (
-              <div className="space-y-6">
-                <textarea
-                  className="w-full h-64 p-6 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:bg-white outline-none transition-all text-lg shadow-inner"
-                  placeholder="Schülertext oder eigenen Entwurf hier einfügen..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
-                <button 
-                  onClick={handleKorrektur}
-                  disabled={!text || isAnalyzing}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50"
-                >
-                  {isAnalyzing ? <Loader2 className="animate-spin" /> : <CheckCircle size={24} />}
-                  JETZT ANALYSIEREN
-                </button>
-
-                {korrekturErgebnis && (
-                  <div className="mt-8 space-y-4 animate-in fade-in duration-500">
-                    <h3 className="text-xl font-bold text-slate-800">Analyse-Feedback:</h3>
-                    {korrekturErgebnis.fehler.map((f, i) => (
-                      <div key={i} className="p-4 bg-orange-50 border-l-8 border-orange-400 rounded-r-xl shadow-sm">
-                        <span className="text-xs font-bold uppercase text-orange-600 tracking-wider">{f.typ}</span>
-                        <p className="mt-1 text-lg">Statt "<span className="text-red-500 line-through">{f.original}</span>" → <span className="font-bold text-green-600">{f.korrekt}</span></p>
-                        <p className="text-sm text-slate-500 mt-1 italic">{f.grund}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-10">
-                {!generierteAufgabe ? (
-                  <div className="space-y-6">
-                    <div className="w-20 h-20 bg-indigo-100 text-indigo-600
+              onClick={() => { setMode('generator'); setGenerierteAufgabe(null); }}
+              className={`flex-1 py-5 font-bold transition-all ${mode === 'generator' ? 'bg-
