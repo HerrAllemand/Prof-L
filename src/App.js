@@ -1,152 +1,140 @@
-import React, { useState, useEffect, useRef } from 'react'; // useRef hinzugefügt!
+import React, { useState, useEffect, useRef } from 'react'; // useRef HINZUGEFÜGT
 import { 
   FileText, Sparkles, PenTool, CheckCircle, Play, 
-  RefreshCw, Loader2, Volume2, Square, Search, GraduationCap, X 
+  RefreshCw, Loader2, Volume2, Square, Search, GraduationCap, X, Pause
 } from 'lucide-react';
 
 export default function App() {
-  // --- STATE MANAGEMENT ---
   const [mode, setMode] = useState('korrektur');
   const [text, setText] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [korrekturErgebnis, setKorrekturErgebnis] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generierteAufgabe, setGenerierteAufgabe] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
-  // Audio-Logik
+  // Aufgaben-Generator State
+  const [aufgabenTyp, setAufgabenTyp] = useState('leseverstehen_zuordnung');
+  const [aufgabenThema, setAufgabenThema] = useState('');
+  const [aufgabenStufe, setAufgabenStufe] = useState('primar');
+  const [aufgabenSchwierigkeit, setAufgabenSchwierigkeit] = useState('mittel');
+  const [generierteAufgabe, setGenerierteAufgabe] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [userAntworten, setUserAntworten] = useState({});
+  const [aufgabenFeedback, setAufgabenFeedback] = useState(null);
+  const [themenSuche, setThemenSuche] = useState('');
+  
+  // Audio State
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [availableVoices, setAvailableVoices] = useState([]);
   const speechRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // --- STIMMEN-LOGIK (DEINE SPEZIAL-FUNKTION) ---
+  // Stimmen laden
   useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
-      const germanVoices = voices.filter(v => v.lang.startsWith('de'));
-      setAvailableVoices(germanVoices.length > 0 ? germanVoices : voices.slice(0, 5));
+      const german = voices.filter(v => v.lang.startsWith('de'));
+      setAvailableVoices(german.length > 0 ? german : voices.slice(0, 5));
     };
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+    if ('speechSynthesis' in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
   }, []);
 
-  const prepareTextForSpeech = (t) => {
-    return t.replace(/Znüni/gi, 'Znüüni')
-            .replace(/LP/g, 'Lehrperson')
-            .replace(/SuS/g, 'Schülerinnen und Schüler');
-  };
-
-  const speakText = (content) => {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(prepareTextForSpeech(content));
-    if (availableVoices[0]) utterance.voice = availableVoices[0];
-    utterance.rate = 0.85; 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  // --- FUNKTIONEN ---
   const handleKorrektur = () => {
     if (!text) return;
     setIsAnalyzing(true);
-    // Simulation der PROF-L KI Analyse
     setTimeout(() => {
-      setKorrekturErgebnis({
-        score: text.toLowerCase().includes("mein oma") ? 80 : 100,
-        details: text.toLowerCase().includes("mein oma") 
-          ? [{ original: "mein Oma", korrektur: "meine Oma", grund: "Genusfehler (feminin)" }] 
-          : []
-      });
+      const fehler = text.toLowerCase().includes("mein oma") 
+        ? [{ original: "mein Oma", korrektur: "meine Oma", grund: "Genusfehler" }] 
+        : [];
+      setKorrekturErgebnis({ score: fehler.length > 0 ? 80 : 100, details: fehler });
       setIsAnalyzing(false);
-    }, 1500);
+    }, 1000);
+  };
+
+  const speak = (t) => {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'de-DE';
+    u.rate = 0.85;
+    if (availableVoices[0]) u.voice = availableVoices[0];
+    u.onstart = () => setIsSpeaking(true);
+    u.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(u);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto">
-        <header className="mb-8 text-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h1 className="text-3xl font-extrabold text-indigo-900 flex items-center justify-center gap-3">
-            <Sparkles className="text-orange-500" /> PROF-L AGENT V5
+        <header className="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 text-center">
+          <h1 className="text-3xl font-black text-indigo-900 flex items-center justify-center gap-3">
+            <GraduationCap className="text-orange-500 w-10 h-10" /> PROF-L AGENT
           </h1>
-          <p className="text-slate-500 mt-2">Prüfungsvorbereitung für Lehrpersonen</p>
+          <p className="text-slate-500 font-medium">Prüfungsmanagement für Lehrpersonen</p>
         </header>
 
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-          {/* NAVIGATION */}
-          <div className="flex bg-slate-100 border-b">
-            <button onClick={() => setMode('korrektur')} className={`flex-1 py-4 font-bold flex justify-center items-center gap-2 ${mode === 'korrektur' ? 'bg-white text-indigo-600 border-t-4 border-indigo-600' : 'text-slate-500'}`}>
-              <PenTool size={18}/> Korrektur
+        <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200">
+          <div className="flex bg-slate-50 p-2 gap-2">
+            <button 
+              onClick={() => setMode('korrektur')} 
+              className={`flex-1 py-4 rounded-2xl font-bold transition-all ${mode === 'korrektur' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+            >
+              <PenTool className="inline-block mr-2 w-5 h-5" /> Korrektur
             </button>
-            <button onClick={() => setMode('generator')} className={`flex-1 py-4 font-bold flex justify-center items-center gap-2 ${mode === 'generator' ? 'bg-white text-indigo-600 border-t-4 border-indigo-600' : 'text-slate-500'}`}>
-              <RefreshCw size={18}/> Generator
+            <button 
+              onClick={() => setMode('generator')} 
+              className={`flex-1 py-4 rounded-2xl font-bold transition-all ${mode === 'generator' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+            >
+              <RefreshCw className="inline-block mr-2 w-5 h-5" /> Generator
             </button>
           </div>
 
-          <div className="p-6 md:p-8">
+          <div className="p-6 md:p-10">
             {mode === 'korrektur' ? (
               <div className="space-y-6">
                 <textarea 
-                  className="w-full h-64 p-4 border-2 border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-lg transition-all" 
-                  placeholder="Text oder Schülerarbeit hier einfügen..."
+                  className="w-full h-64 p-6 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 focus:bg-white transition-all text-lg" 
+                  placeholder="Schülertext hier einfügen..."
                   value={text} 
                   onChange={(e) => setText(e.target.value)} 
                 />
-                <button 
-                  onClick={handleKorrektur} 
-                  disabled={!text || isAnalyzing} 
-                  className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-indigo-700 disabled:bg-slate-300 transition-all"
-                >
-                  {isAnalyzing ? <Loader2 className="animate-spin" /> : "Analyse Starten"}
-                </button>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={handleKorrektur} 
+                    className="flex-[3] bg-indigo-600 text-white py-5 rounded-2xl font-bold text-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95"
+                  >
+                    {isAnalyzing ? "KI analysiert..." : "Text prüfen"}
+                  </button>
+                  <button 
+                    onClick={() => isSpeaking ? window.speechSynthesis.cancel() : speak(text)} 
+                    className="flex-1 bg-white border-2 border-slate-200 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all"
+                  >
+                    {isSpeaking ? <Square className="text-red-500 fill-red-500" /> : <Play className="text-indigo-600 fill-indigo-600" />}
+                  </button>
+                </div>
 
                 {korrekturErgebnis && (
-                  <div className="mt-6 p-6 bg-indigo-50 rounded-2xl border border-indigo-100 animate-in slide-in-from-bottom-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-xl text-indigo-900">Analyseergebnis</h3>
-                      <span className="bg-indigo-600 text-white px-4 py-1 rounded-full font-bold">{korrekturErgebnis.score}%</span>
-                    </div>
-                    {korrekturErgebnis.details.length > 0 ? (
-                      korrekturErgebnis.details.map((f, i) => (
-                        <div key={i} className="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm">
-                          <p className="text-sm text-slate-500">Gefundener Fehler:</p>
-                          <p className="font-medium text-lg"><s>{f.original}</s> → <span className="text-green-600 font-bold">{f.korrektur}</span></p>
-                          <p className="text-sm italic mt-1 text-indigo-500">{f.grund}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-green-600 font-medium">Keine Fehler gefunden. Sehr gute Arbeit!</p>
-                    )}
+                  <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-bottom-4">
+                    <h3 className="font-bold text-indigo-900 text-xl mb-4">Ergebnis: {korrekturErgebnis.score}%</h3>
+                    {korrekturErgebnis.details.map((f, i) => (
+                      <div key={i} className="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm mb-3">
+                        <span className="text-red-500 line-through mr-2">{f.original}</span>
+                        <span className="text-green-600 font-bold">→ {f.korrektur}</span>
+                        <p className="text-sm text-slate-500 mt-1 italic">{f.grund}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="py-20 text-center">
-                <RefreshCw size={48} className="mx-auto text-slate-200 mb-4 animate-spin-slow" />
+              <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                <Sparkles size={48} className="mx-auto text-indigo-200 mb-4" />
                 <h3 className="text-xl font-bold text-slate-400">Generator bereit</h3>
-                <p className="text-slate-400">Wähle ein Thema aus der Liste, um eine Aufgabe zu erstellen.</p>
+                <p className="text-slate-400 max-w-xs mx-auto mt-2">Wähle ein Thema aus deiner Liste, um Übungen zu erstellen.</p>
               </div>
             )}
           </div>
         </div>
-
-        {/* AUDIO PLAYER */}
-        {text && (
-          <div className="mt-6 bg-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg animate-in fade-in">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => isSpeaking ? window.speechSynthesis.cancel() : speakText(text)} 
-                className="w-12 h-12 flex items-center justify-center bg-indigo-500 rounded-full hover:bg-indigo-400 transition-colors"
-              >
-                {isSpeaking ? <Square fill="white" size={20} /> : <Play fill="white" size={20} className="ml-1" />}
-              </button>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Audio-Vorschau</p>
-                <p className="text-sm">PROF-L Sprecher (0.85x Speed)</p>
-              </div>
-            </div>
-            <Volume2 className="text-slate-500" />
-          </div>
-        )}
       </div>
     </div>
   );
