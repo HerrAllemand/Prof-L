@@ -15,7 +15,7 @@ export default function App() {
 
   const handleAnalyze = async () => {
     // Falls dein Key mit "sk-ant" beginnt, ist alles okay
-    if (!text || !API_KEY.startsWith("sk-ant")) {
+    if (!text || !API_KEY.startsWith("sk-...6UcA")) {
       alert("Bitte Text eingeben und sicherstellen, dass ein gültiger sk-ant... Key im Code steht.");
       return;
     }
