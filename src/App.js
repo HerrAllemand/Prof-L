@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; // useRef HINZUGEFÜGT
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Sparkles, PenTool, CheckCircle, Play, 
   RefreshCw, Loader2, Volume2, Square, Search, GraduationCap, X, Pause
